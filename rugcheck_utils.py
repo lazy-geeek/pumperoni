@@ -1,5 +1,5 @@
 import requests
-from .config import RUGCHECK_API
+from config import RUGCHECK_API
 
 
 # RugCheck verification

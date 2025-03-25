@@ -5,8 +5,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
-from .config import GMGN_API
-from .twitter_utils import search_tweets, analyze_twitter_sentiment
+from config import GMGN_API
+from twitter_utils import search_tweets, analyze_twitter_sentiment
 
 
 # Token forecasting

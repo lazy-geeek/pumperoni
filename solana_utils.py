@@ -1,5 +1,5 @@
 import requests
-from .config import SOLANA_RPC, GMGN_API
+from config import SOLANA_RPC, GMGN_API
 
 
 def get_network_congestion():

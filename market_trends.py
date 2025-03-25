@@ -1,5 +1,5 @@
 import requests
-from .config import GMGN_API, PUMPFUN_API
+from config import GMGN_API, PUMPFUN_API
 
 
 # Market trend tracking

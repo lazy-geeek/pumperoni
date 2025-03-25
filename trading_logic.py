@@ -1,9 +1,9 @@
-from .solana_utils import (
+from solana_utils import (
     get_network_congestion,
     get_token_price,
     should_sell_due_to_market_conditions,
 )
-from .rugcheck_utils import check_token_safety
+from rugcheck_utils import check_token_safety
 
 # Adaptive purchasing/selling
 MIN_PURCHASE = 0.1 * 10**9  # 0.1 SOL in lamports
