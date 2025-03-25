@@ -8,11 +8,11 @@ def setup_db():
     c = conn.cursor()
     c.execute(
         """CREATE TABLE IF NOT EXISTS tokens
-                 (token text, platform text, trend_score real, timestamp text)"""
+        (token text, platform text, trend_score real, timestamp text)"""
     )
     c.execute(
         """CREATE TABLE IF NOT EXISTS twitter_data
-                 (token text, tweet text, sentiment real, timestamp text)"""
+        (token text, tweet text, sentiment real, timestamp text)"""
     )
     conn.commit()
     conn.close()

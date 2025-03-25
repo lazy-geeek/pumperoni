@@ -1,14 +1,14 @@
 import tweepy
 from datetime import datetime
 from .config import (
-    TWITTER_CONSUMER_KEY,
-    TWITTER_CONSUMER_SECRET,
+    TWITTER_API_KEY,
+    TWITTER_API_SECRET,
     TWITTER_ACCESS_TOKEN,
     TWITTER_ACCESS_TOKEN_SECRET,
 )
 
 # Twitter setup
-auth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
+auth = tweepy.OAuthHandler(TWITTER_API_KEY, TWITTER_API_SECRET)
 auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
 twitter_api = tweepy.API(auth)
 
