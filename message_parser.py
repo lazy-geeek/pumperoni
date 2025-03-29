@@ -9,6 +9,11 @@ def parse_message(text):
     if token_address_match:
         data["token_address"] = token_address_match.group(1).strip()
 
+    # Token Name
+    token_name_match = re.search(r"\[\*\*(.*?)\*\*\]", text)
+    if token_name_match:
+        data["token_name"] = token_name_match.group(1).strip()
+
     # USD
     usd_match = re.search(r"`USD:\s*`\*\*(\$[0-9,.]+)\*\*", text)
     if usd_match:
