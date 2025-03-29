@@ -17,9 +17,9 @@ async def fetch_history():
         await client.sign_in(phone, input("Enter the code: "))
 
     channel = await client.get_entity(channel_username)
-    messages = await client.get_messages(channel, limit=5)
+    messages = await client.get_messages(channel, limit=20)
 
-    print("Last 5 messages from the channel:")
+    print("Last 20 messages from the channel:")
     for message in messages:
         print(f"\nMessage: {message.text}")
         parsed_data = parse_message(message)
