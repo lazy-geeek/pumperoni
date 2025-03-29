@@ -9,7 +9,11 @@ def parse_message(message_obj: Message) -> dict:
         if hasattr(message_obj.peer_id, "user_id")
         else message_obj.peer_id.channel_id
     )
-    data = {"message_id": message_obj.id, "chat_id": chat_id}
+    data = {
+        "message_id": message_obj.id,
+        "chat_id": chat_id,
+        "timestamp": message_obj.date.isoformat(),
+    }
     if hasattr(message_obj, "reply_to") and message_obj.reply_to:
         data["reply_to_message_id"] = message_obj.reply_to.reply_to_msg_id
 
