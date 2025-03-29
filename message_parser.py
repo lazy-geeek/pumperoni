@@ -1,8 +1,15 @@
 import re
+from telethon.tl.patched import Message
 
 
-def parse_message(text):
-    data = {}
+def parse_message(message_obj: Message) -> dict:
+    text = message_obj.text
+    chat_id = (
+        message_obj.peer_id.user_id
+        if hasattr(message_obj.peer_id, "user_id")
+        else message_obj.peer_id.channel_id
+    )
+    data = {"message_id": message_obj.id, "chat_id": chat_id}
 
     # Token Address
     token_address_match = re.search(r"💊 `(.*)`", text)

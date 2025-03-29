@@ -23,7 +23,7 @@ async def handle_new_message(event):
     print("\nExtracted values:")
 
     # Parse the message
-    extracted_data = parse_message(message_text)
+    extracted_data = parse_message(event.message)
 
     # Print the extracted data
     for key, value in extracted_data.items():

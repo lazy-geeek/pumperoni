@@ -22,7 +22,7 @@ async def fetch_history():
     print("Last 5 messages from the channel:")
     for message in messages:
         print(f"\nMessage: {message.text}")
-        parsed_data = parse_message(message.text)
+        parsed_data = parse_message(message)
         print("Parsed data:")
         for key, value in parsed_data.items():
             print(f"  {key}: {value}")
