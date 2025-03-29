@@ -44,11 +44,9 @@ def parse_message(text):
             data["vol"] = int(float(vol_str))
 
     # Holder Top 10
-    holder_match = re.search(
-        r"`Holder:\s*Top 10:\s*`\*\*([🟡🔴]\s*([0-9]+)%)\*\*", text
-    )
+    holder_match = re.search(r"`Holder:\s*`Top 10:\s*\*\*[🟡🔴🟢]?\s*(\d+)%\*\*", text)
     if holder_match:
-        data["holder"] = int(holder_match.group(2))
+        data["top10_holder"] = int(holder_match.group(1))
 
     # Extract x value from messages like "💹 **8.6x** 288.3K to 2.5M"
     x_match = re.search(r"\*\*([0-9.]+)x\*\*", text)

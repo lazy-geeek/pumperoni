@@ -174,3 +174,4 @@ cython_debug/
 .pypirc
 memecoins.db
 session_name.session
+history_session.session
