@@ -48,6 +48,16 @@ def parse_message(text):
         else:
             data["vol"] = int(float(vol_str))
 
+    # Dex Exchange
+    dex_match = re.search(r"`Dex:\s*`\*\*([^*]+)\*\*", text)
+    if dex_match:
+        data["dex"] = dex_match.group(1).strip()
+
+    # Dex Paid Status
+    dex_paid_match = re.search(r"`Dex Paid:\s*`\*\*([🔴🟢])\*\*", text)
+    if dex_paid_match:
+        data["dex_paid"] = dex_paid_match.group(1) == "🟢"
+
     # Holder Top 10
     holder_match = re.search(r"`Holder:\s*`Top 10:\s*\*\*[🟡🔴🟢]?\s*(\d+)%\*\*", text)
     if holder_match:
