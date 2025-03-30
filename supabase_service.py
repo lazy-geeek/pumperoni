@@ -60,3 +60,24 @@ class SupabaseService:
         except Exception as e:
             print(f"Error retrieving message: {e}")
             return None
+
+    def get_latest_message_id(self, chat_id: int) -> Optional[int]:
+        """Retrieve the maximum message_id for a given chat_id"""
+        try:
+            # Use rpc to call a custom SQL function or directly query max(message_id)
+            # Simpler approach: Query order by message_id desc, limit 1
+            response = (
+                self.client.table("messages")
+                .select("message_id")
+                .eq("chat_id", chat_id)
+                .order("message_id", desc=True)
+                .limit(1)
+                .execute()
+            )
+            if response.data:
+                return response.data[0]["message_id"]
+            else:
+                return 0  # Return 0 if no messages found for this chat_id
+        except Exception as e:
+            print(f"Error retrieving latest message ID: {e}")
+            return None  # Indicate error

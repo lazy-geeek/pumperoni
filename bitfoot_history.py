@@ -13,7 +13,7 @@ api_hash = os.getenv("TELEGRAM_API_HASH")
 phone = os.getenv("TELEGRAM_PHONE_NUMBER")
 channel_username = os.getenv("TELEGRAM_CHANNEL_USERNAME")
 
-# No progress file needed
+# No progress file needed anymore
 
 
 async def backfill_history():
@@ -33,9 +33,7 @@ async def backfill_history():
         print("Connecting to Telegram...")
         await client.connect()
         if not await client.is_user_authorized():
-            print(
-                "Client not authorized. Please run bitfoot_signals.py first to authorize."
-            )
+            print("Client not authorized. Attempting sign-in...")
             await client.send_code_request(phone)
             try:
                 await client.sign_in(phone, input("Enter the code: "))
@@ -44,52 +42,102 @@ async def backfill_history():
                 return
         print("Connected and authorized.")
 
-        # Get the ID of the last message for the progress bar total (optional but nice)
-        total_target = 0
-        print("Fetching last message ID for progress bar total...")
+        # Get channel entity and ID
+        print(f"Getting entity for channel: {channel_username}")
         try:
-            last_message = await client.get_messages(channel_username, limit=1)
-            if last_message:
-                total_target = last_message[0].id
-                print(
-                    f"Last message ID is {total_target}. Using this for progress bar total."
-                )
+            entity = await client.get_entity(channel_username)
+            # Ensure it's a channel/chat ID, not user ID
+            if hasattr(entity, "broadcast") or hasattr(entity, "megagroup"):
+                chat_id = entity.id
+                print(f"Resolved channel ID: {chat_id}")
             else:
                 print(
-                    "Could not fetch last message ID. Progress bar total might be inaccurate."
+                    f"Error: {channel_username} does not appear to be a channel or group."
                 )
-        except Exception as e:
+                return
+        except ValueError:
             print(
-                f"Error fetching last message ID: {e}. Progress bar total might be inaccurate."
+                f"Error: Could not find the channel/group '{channel_username}'. Please check the username/link."
+            )
+            return
+        except Exception as e:
+            print(f"Error getting channel entity: {e}")
+            return
+
+        # Get the last message ID stored in the database for this chat
+        print(f"Fetching latest stored message ID for chat {chat_id} from database...")
+        min_id_to_fetch = supabase.get_latest_message_id(chat_id)
+
+        if min_id_to_fetch is None:
+            print("Error fetching latest message ID from database. Aborting.")
+            return
+        elif min_id_to_fetch == 0:
+            print(
+                "No messages found in database for this chat. Will fetch all history."
+            )
+        else:
+            print(
+                f"Database contains messages up to ID {min_id_to_fetch}. Fetching newer messages only."
             )
 
+        # Get the actual latest message ID in the channel for progress bar total
+        latest_channel_id = 0
+        print("Fetching current latest message ID from channel...")
+        try:
+            last_message = await client.get_messages(entity, limit=1)
+            if last_message:
+                latest_channel_id = last_message[0].id
+                print(f"Current latest message ID in channel: {latest_channel_id}.")
+            else:
+                print("Channel appears empty. No messages to fetch.")
+                return
+        except Exception as e:
+            print(
+                f"Error fetching latest message ID from channel: {e}. Progress bar might be inaccurate."
+            )
+            # Use min_id_to_fetch as a fallback total if we can't get the latest
+            latest_channel_id = min_id_to_fetch
+
+        # Estimate total new messages for the progress bar
+        estimated_new_messages = max(0, latest_channel_id - min_id_to_fetch)
+        if estimated_new_messages == 0 and min_id_to_fetch > 0:
+            print("Database is already up-to-date.")
+            return
+
+        print(f"Estimated new messages to process: {estimated_new_messages}")
+
         processed_in_session = 0
-        print(f"Starting history processing for channel: {channel_username}")
+        inserted_in_session = 0
 
         # Initialize tqdm progress bar
-        pbar = tqdm(total=total_target, unit="msg", desc="Processing History")
+        pbar = tqdm(
+            total=estimated_new_messages, unit="msg", desc="Fetching New Messages"
+        )
 
         try:
-            # Iterate through all messages using the async iterator
-            # Set reverse=True to process oldest first, which feels more natural for backfill
-            async for msg in client.iter_messages(channel_username, reverse=True):
+            # Iterate through messages newer than the last one stored
+            # Use reverse=True to process oldest first among the new messages
+            async for msg in client.iter_messages(
+                entity, min_id=min_id_to_fetch, reverse=True
+            ):
+                processed_in_session += 1  # Count every message iterated over
                 try:
                     # Basic check
                     if not hasattr(msg, "text") or not msg.text:
                         pbar.update(
                             1
-                        )  # Still update progress for skipped non-text messages
+                        )  # Update progress even for skipped non-text messages
                         continue
 
                     parsed = parse_message(msg)
                     # Supabase service handles None check and duplicate check
                     status = supabase.store_message(parsed)
                     if status == "inserted":
-                        processed_in_session += 1
-                    # Optional: Log status if needed, but keep it minimal
+                        inserted_in_session += 1
+                    # Optional: Log status if needed
                     # print(f"Msg {msg.id}: {status}")
 
-                    pbar.update(1)  # Update progress bar for every message iterated
+                    pbar.update(1)  # Update progress bar
 
                 except FloodWaitError as e:
                     wait_time = e.seconds
@@ -98,11 +146,10 @@ async def backfill_history():
                     )
                     pbar.set_description(f"Flood wait ({wait_time}s)")
                     await asyncio.sleep(wait_time)
-                    pbar.set_description("Processing History")  # Reset description
+                    pbar.set_description("Fetching New Messages")  # Reset description
                 except Exception as e_inner:
                     print(f"\nError processing message ID {msg.id}: {e_inner}")
-                    # Decide if you want to continue or break on inner errors
-                    # continue
+                    # Continue processing other messages
 
         except Exception as e_outer:
             # Catch errors during the iteration setup or major issues
@@ -111,9 +158,9 @@ async def backfill_history():
             print("-" * 50)
             pbar.close()  # Close the progress bar
             print("-" * 50)
-            print(f"\nHistory processing finished.")
-            print(f"New messages inserted in this session: {processed_in_session}")
-            # Note: Can't easily report total processed across sessions without progress file
+            print(f"\nMessage fetching finished.")
+            print(f"Messages iterated in this session: {processed_in_session}")
+            print(f"New messages inserted in this session: {inserted_in_session}")
 
 
 if __name__ == "__main__":
