@@ -175,3 +175,4 @@ cython_debug/
 memecoins.db
 session_name.session
 history_session.session
+backfill_progress.json

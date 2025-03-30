@@ -16,7 +16,7 @@ class SupabaseService:
     ) -> Literal["inserted", "skipped", "error"]:
         """Store parsed message data in Supabase, skipping duplicates. Returns status."""
         if message_data is None:
-            print("🚫 Skipping invalid/filtered message (None received)")
+            # print("🚫 Skipping invalid/filtered message (None received)") # Silenced
             return "skipped"
 
         try:
@@ -26,13 +26,13 @@ class SupabaseService:
             )
 
             if existing:
-                print("⏩ Skipping duplicate message")
+                # print("⏩ Skipping duplicate message") # Silenced
                 return "skipped"
 
             response = self.client.table("messages").insert(message_data).execute()
             # Check if insert was successful (PostgREST returns data on success)
             if response.data:
-                print("✅ Successfully stored new message")
+                # print("✅ Successfully stored new message") # Silenced
                 return "inserted"
             else:
                 # This case might indicate an issue not caught by exceptions
