@@ -12,6 +12,10 @@ channel_username = os.getenv("TELEGRAM_CHANNEL_USERNAME")
 client = TelegramClient("session_name", api_id, api_hash)
 
 from message_parser import parse_message
+from supabase_service import SupabaseService
+
+# Initialize Supabase service
+supabase_service = SupabaseService()
 
 
 # Event handler for new messages in the channel
@@ -25,9 +29,16 @@ async def handle_new_message(event):
     # Parse the message
     extracted_data = parse_message(event.message)
 
-    # Print the extracted data
-    for key, value in extracted_data.items():
-        print(f"{key}: {value}")
+    # Print the extracted data if it's not None (for logging purposes)
+    if extracted_data:
+        for key, value in extracted_data.items():
+            print(f"{key}: {value}")
+    else:
+        print("Message parsing returned None.")
+
+    # Store the message data (SupabaseService handles None check)
+    store_status = supabase_service.store_message(extracted_data)
+    print(f"Database store status: {store_status}")
     print("-" * 50)
 
 
