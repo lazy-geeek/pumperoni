@@ -80,5 +80,16 @@ def parse_message(message_obj: Message) -> dict:
     x_match = re.search(r"\*\*([0-9.]+)x\*\*", text)
     if x_match:
         data["x"] = float(x_match.group(1))
+    else:
+        data["x"] = -1  # Default value if x is not found
 
-    return data
+    # Validate either main signal or reply with growth data
+    is_main_signal = data.get("token_address") is not None
+    is_valid_reply = (
+        data.get("reply_to_message_id") is not None and data.get("x", -1) != -1
+    )
+
+    if is_main_signal or is_valid_reply:
+        return data
+    else:
+        return None

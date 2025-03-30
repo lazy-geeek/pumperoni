@@ -15,6 +15,10 @@ class SupabaseService:
         self, message_data: Dict
     ) -> Literal["inserted", "skipped", "error"]:
         """Store parsed message data in Supabase, skipping duplicates. Returns status."""
+        if message_data is None:
+            print("🚫 Skipping invalid/filtered message (None received)")
+            return "skipped"
+
         try:
             # Check for existing message first
             existing = self.get_message(
