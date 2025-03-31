@@ -100,61 +100,57 @@ else:
     else:
         st.success(f"Loaded {len(df)} messages.")
 
-        # --- Analysis: Signal X Status ---
-        st.header("Signal 'X' Status")
+        # --- Create Tabs ---
+        # Only one tab needed now
+        tab1 = st.tabs(["📊 Signal X Analysis"])[0]  # Get the first tab object
 
-        # Filter for signals (original messages, not replies)
-        signals_df = df[
-            df["reply_to_message_id"] == 0
-        ].copy()  # Use .copy() to avoid SettingWithCopyWarning
+        # --- Tab 1: Signal X Status Analysis ---
+        with tab1:
+            st.header("Signal 'X' Status")
 
-        total_signals = len(signals_df)
+            # Filter for signals (original messages, not replies)
+            signals_df = df[
+                df["reply_to_message_id"] == 0
+            ].copy()  # Use .copy() to avoid SettingWithCopyWarning
 
-        if total_signals == 0:
-            st.info("No signals found in the selected period.")
-        else:
-            # Count signals still needing an update (x == -1)
-            # Handle potential NaN values from coercion if 'x' was invalid
-            signals_no_x = signals_df[signals_df["x"].fillna(-1) == -1]
-            count_no_x = len(signals_no_x)
+            total_signals = len(signals_df)
 
-            # Count signals that have received an update (x > 0)
-            signals_with_x = signals_df[signals_df["x"].fillna(-1) > 0]
-            count_with_x = len(signals_with_x)
+            if total_signals == 0:
+                st.info("No signals found in the selected period.")
+            else:
+                # Count signals still needing an update (x == -1)
+                # Handle potential NaN values from coercion if 'x' was invalid
+                signals_no_x = signals_df[signals_df["x"].fillna(-1) == -1]
+                count_no_x = len(signals_no_x)
 
-            # Calculate percentages
-            percent_no_x = (
-                (count_no_x / total_signals) * 100 if total_signals > 0 else 0
-            )
-            percent_with_x = (
-                (count_with_x / total_signals) * 100 if total_signals > 0 else 0
-            )
+                # Count signals that have received an update (x > 0)
+                signals_with_x = signals_df[signals_df["x"].fillna(-1) > 0]
+                count_with_x = len(signals_with_x)
 
-            # Display Metrics
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Total Signals", f"{total_signals:,}")
-            col2.metric(
-                "Signals without X Update",
-                f"{count_no_x:,}",
-                f"{percent_no_x:.1f}% of total",
-            )
-            col3.metric(
-                "Signals with X Update",
-                f"{count_with_x:,}",
-                f"{percent_with_x:.1f}% of total",
-            )
-
-            # Optional: Display raw signals data
-            with st.expander("View Signal Data"):
-                st.dataframe(
-                    signals_df[["timestamp", "x"]].sort_values(
-                        "timestamp", ascending=False
-                    )
+                # Calculate percentages
+                percent_no_x = (
+                    (count_no_x / total_signals) * 100 if total_signals > 0 else 0
+                )
+                percent_with_x = (
+                    (count_with_x / total_signals) * 100 if total_signals > 0 else 0
                 )
 
-        # --- Optional: Display All Loaded Data ---
-        with st.expander("View All Loaded Message Data"):
-            st.dataframe(df.sort_values("timestamp", ascending=False))
+                # Display Metrics
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Total Signals", f"{total_signals:,}")
+                col2.metric(
+                    "Signals without X Update",
+                    f"{count_no_x:,}",
+                    f"{percent_no_x:.1f}% of total",
+                )
+                col3.metric(
+                    "Signals with X Update",
+                    f"{count_with_x:,}",
+                    f"{percent_with_x:.1f}% of total",
+                )
+
+        # Removed the second tab and the expander for signal data
+
 
 # --- How to Run ---
 st.sidebar.info(
