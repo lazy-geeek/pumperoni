@@ -70,6 +70,41 @@ class SupabaseService:
             # Check if insert was successful (PostgREST returns data on success)
             if response.data:
                 # print("✅ Successfully stored new message") # Silenced
+
+                # --- Start: Update original signal's x if this is a higher update ---
+                is_update = message_data.get("reply_to_message_id", 0) != 0
+                new_x = message_data.get("x", -1.0)
+
+                if is_update and new_x != -1.0:
+                    original_message_id = message_data["reply_to_message_id"]
+                    chat_id = message_data["chat_id"]
+
+                    try:
+                        original_signal = self.get_message(original_message_id, chat_id)
+                        if original_signal:
+                            current_x = original_signal.get("x", -1.0)
+                            # Ensure comparison is between floats
+                            if float(new_x) > float(current_x):
+                                update_response = (
+                                    self.client.table("messages")
+                                    .update({"x": float(new_x)})
+                                    .eq("message_id", original_message_id)
+                                    .eq("chat_id", chat_id)
+                                    .execute()
+                                )
+                                if not update_response.data:
+                                    print(
+                                        f"⚠️ Failed to update x for original signal {original_message_id} in chat {chat_id}"
+                                    )
+                                # else:
+                                #    print(f"✅ Updated x for original signal {original_message_id} to {new_x}") # Silenced
+                        # else:
+                        # print(f"ℹ️ Original signal {original_message_id} not found for update.") # Silenced
+
+                    except Exception as update_err:
+                        print(f"❌ Error updating original signal's x: {update_err}")
+                # --- End: Update original signal's x ---
+
                 return "inserted"
             else:
                 # This case might indicate an issue not caught by exceptions
