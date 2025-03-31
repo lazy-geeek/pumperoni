@@ -101,8 +101,7 @@ else:
         st.success(f"Loaded {len(df)} messages.")
 
         # --- Create Tabs ---
-        # Only one tab needed now
-        tab1 = st.tabs(["📊 Signal X Analysis"])[0]  # Get the first tab object
+        tab1, tab2 = st.tabs(["📊 Signal X Status", "📈 X Distribution"])
 
         # --- Tab 1: Signal X Status Analysis ---
         with tab1:
@@ -149,7 +148,37 @@ else:
                     f"{percent_with_x:.1f}% of total",
                 )
 
-        # Removed the second tab and the expander for signal data
+        # --- Tab 2: X Distribution Chart ---
+        with tab2:
+            st.header("Distribution of 'X' Values for Updated Signals")
+
+            # Filter signals that have an update (x > 0, excluding -1)
+            updated_signals = signals_df[signals_df["x"] > 0].copy()
+
+            if updated_signals.empty:
+                st.info(
+                    "No signals with an X update (> 0) found in the selected period."
+                )
+            else:
+                # Round 'x' values to the nearest integer
+                updated_signals["x_rounded"] = updated_signals["x"].round().astype(int)
+
+                # Count signals per rounded x value
+                x_distribution = (
+                    updated_signals["x_rounded"].value_counts().sort_index()
+                )
+
+                # Rename index for clarity in the chart
+                x_distribution.index.name = "Rounded X Value"
+                x_distribution = x_distribution.reset_index()
+                x_distribution.columns = ["Rounded X Value", "Number of Signals"]
+
+                # Display the bar chart
+                st.bar_chart(x_distribution, x="Rounded X Value", y="Number of Signals")
+
+                # Optional: Display the data table for the chart
+                with st.expander("View Chart Data"):
+                    st.dataframe(x_distribution)
 
 
 # --- How to Run ---
