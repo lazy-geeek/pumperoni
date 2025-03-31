@@ -153,3 +153,47 @@ class SupabaseService:
         except Exception as e:
             print(f"Error retrieving latest message ID: {e}")
             return None  # Indicate error
+
+    def get_messages_in_range(
+        self, start_date: Optional[str] = None, end_date: Optional[str] = None
+    ) -> list[Dict]:
+        """Retrieve all messages within a specified timestamp range using pagination."""
+        all_data = []
+        page_size = 1000  # Supabase default page size
+        offset = 0
+        while True:
+            try:
+                query = self.client.table("messages").select(
+                    "timestamp, reply_to_message_id, x",
+                    count="exact",  # Request count for pagination logic
+                )
+                if start_date:
+                    query = query.gte("timestamp", start_date)
+                if end_date:
+                    end_date_inclusive = f"{end_date} 23:59:59.999999"
+                    query = query.lte("timestamp", end_date_inclusive)
+
+                # Apply range for pagination
+                response = (
+                    query.range(offset, offset + page_size - 1)
+                    .order("timestamp", desc=False)
+                    .execute()
+                )
+
+                if response.data:
+                    all_data.extend(response.data)
+                    # Check if we received fewer results than the page size, indicating the last page
+                    if len(response.data) < page_size:
+                        break
+                    else:
+                        offset += page_size  # Prepare for the next page
+                else:
+                    # No more data or initial query returned nothing
+                    break
+
+            except Exception as e:
+                print(f"Error retrieving messages page (offset {offset}): {e}")
+                # Decide if you want to return partial data or fail completely
+                return []  # Returning empty list on error during pagination
+
+        return all_data
