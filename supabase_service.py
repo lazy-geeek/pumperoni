@@ -19,6 +19,43 @@ class SupabaseService:
             # print("🚫 Skipping invalid/filtered message (None received)") # Silenced
             return "skipped"
 
+        # Ensure default values for numeric fields before processing
+        numeric_defaults = {
+            "usd": 0.0,  # Use float for consistency
+            "mc": 0,
+            "vol": 0,
+            "top10_holder": 0,
+            "x": -1.0,  # Use float for consistency, default -1
+            "reply_to_message_id": 0,  # Default 0 if not a reply
+        }
+        for field, default in numeric_defaults.items():
+            # Set default only if the key is missing or the value is None
+            if field not in message_data or message_data[field] is None:
+                message_data[field] = default
+            # Ensure correct type (e.g., handle potential string '0' if parser was inconsistent)
+            # This is a bit defensive, ideally the parser handles types correctly
+            elif field in ["usd", "x"] and not isinstance(
+                message_data[field], (int, float)
+            ):
+                try:
+                    message_data[field] = float(message_data[field])
+                except (ValueError, TypeError):
+                    message_data[field] = (
+                        default  # Fallback to default if conversion fails
+                    )
+            elif field in [
+                "mc",
+                "vol",
+                "top10_holder",
+                "reply_to_message_id",
+            ] and not isinstance(message_data[field], int):
+                try:
+                    message_data[field] = int(
+                        float(message_data[field])
+                    )  # Allow float->int conversion
+                except (ValueError, TypeError):
+                    message_data[field] = default  # Fallback
+
         try:
             # Check for existing message first
             existing = self.get_message(

@@ -1,30 +1,52 @@
--- SQL script to update the existing 'messages' table structure
+-- Update existing NULL or specific default values to the desired defaults
+-- Ensures idempotency if run multiple times
+UPDATE messages SET
+    usd = COALESCE(usd, 0),
+    mc = COALESCE(mc, 0),
+    vol = COALESCE(vol, 0),
+    top10_holder = COALESCE(top10_holder, 0),    
+    reply_to_message_id = COALESCE(reply_to_message_id, 0)
+WHERE
+    usd IS NULL OR
+    mc IS NULL OR
+    vol IS NULL OR
+    top10_holder IS NULL OR    
+    reply_to_message_id IS NULL;
 
--- Add the reply_to_message_id column if it doesn't exist
-ALTER TABLE messages
-ADD COLUMN IF NOT EXISTS reply_to_message_id BIGINT;
+-- Add DEFAULT constraints and NOT NULL where they don't already exist
+-- Note: Supabase UI might be easier for adding constraints if this fails due to existing data/types.
 
--- Note: The primary key (message_id, chat_id) should already exist from the initial creation.
--- If it doesn't, you might need to add it manually:
--- ALTER TABLE messages ADD CONSTRAINT messages_pkey PRIMARY KEY (message_id, chat_id);
--- Running the above command might fail if the constraint already exists.
+-- USD
+ALTER TABLE messages ALTER COLUMN usd SET DEFAULT 0;
+ALTER TABLE messages ALTER COLUMN usd SET NOT NULL;
 
--- Create indexes if they don't exist
-CREATE INDEX IF NOT EXISTS idx_timestamp ON messages (timestamp);
-CREATE INDEX IF NOT EXISTS idx_token_address ON messages (token_address);
+-- MC
+ALTER TABLE messages ALTER COLUMN mc SET DEFAULT 0;
+ALTER TABLE messages ALTER COLUMN mc SET NOT NULL;
 
--- Ensure other columns exist (optional, for completeness - uncomment if needed)
--- ALTER TABLE messages ADD COLUMN IF NOT EXISTS timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(); -- Adjust default as needed
--- ALTER TABLE messages ADD COLUMN IF NOT EXISTS token_address TEXT;
--- ALTER TABLE messages ADD COLUMN IF NOT EXISTS token_name TEXT;
--- ALTER TABLE messages ADD COLUMN IF NOT EXISTS usd NUMERIC;
--- ALTER TABLE messages ADD COLUMN IF NOT EXISTS mc BIGINT;
--- ALTER TABLE messages ADD COLUMN IF NOT EXISTS vol BIGINT;
--- ALTER TABLE messages ADD COLUMN IF NOT EXISTS dex TEXT;
--- ALTER TABLE messages ADD COLUMN IF NOT EXISTS dex_paid BOOLEAN;
--- ALTER TABLE messages ADD COLUMN IF NOT EXISTS top10_holder INTEGER;
--- ALTER TABLE messages ADD COLUMN IF NOT EXISTS x FLOAT;
--- ALTER TABLE messages ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
--- ALTER TABLE messages ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+-- VOL
+ALTER TABLE messages ALTER COLUMN vol SET DEFAULT 0;
+ALTER TABLE messages ALTER COLUMN vol SET NOT NULL;
 
-SELECT 'Table messages updated successfully (if changes were needed).';
+-- top10_holder
+ALTER TABLE messages ALTER COLUMN top10_holder SET DEFAULT 0;
+ALTER TABLE messages ALTER COLUMN top10_holder SET NOT NULL;
+
+-- x (Default -1)
+ALTER TABLE messages ALTER COLUMN x SET DEFAULT -1;
+ALTER TABLE messages ALTER COLUMN x SET NOT NULL;
+
+-- reply_to_message_id
+ALTER TABLE messages ALTER COLUMN reply_to_message_id SET DEFAULT 0;
+-- Assuming reply_to_message_id can sometimes legitimately be NULL if it's not a reply
+-- If it MUST always have a value (even 0), uncomment the next line:
+-- ALTER TABLE messages ALTER COLUMN reply_to_message_id SET NOT NULL;
+
+-- Optional: Verify changes (run manually in SQL editor)
+-- SELECT column_name, column_default, is_nullable
+-- FROM information_schema.columns
+-- WHERE table_name = 'messages'
+-- AND column_name IN ('usd', 'mc', 'vol', 'top10_holder', 'x', 'reply_to_message_id');
+
+-- Check for remaining NULLs (should be 0 for NOT NULL columns)
+-- SELECT COUNT(*) FROM messages WHERE usd IS NULL OR mc IS NULL OR vol IS NULL OR top10_holder IS NULL OR x IS NULL;
