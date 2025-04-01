@@ -160,36 +160,13 @@ else:
                     "No signals with an X update (> 0) found in the selected period."
                 )
             else:
-                # Round 'x' values to the nearest integer
-                updated_signals["x_rounded"] = updated_signals["x"].round().astype(int)
-
-                # Count signals per rounded x value
-                x_distribution = (
-                    updated_signals["x_rounded"].value_counts().sort_index()
-                )
+                # Count signals per x value
+                x_distribution = updated_signals["x"].value_counts().sort_index()
 
                 # Rename index for clarity in the chart
-                x_distribution.index.name = "Rounded X Value"
+                x_distribution.index.name = "X Value"
                 x_distribution = x_distribution.reset_index()
-                x_distribution.columns = ["Rounded X Value", "Number of Signals"]
+                x_distribution.columns = ["X Value", "Number of Signals"]
 
                 # Display the bar chart
-                st.bar_chart(x_distribution, x="Rounded X Value", y="Number of Signals")
-
-                # Optional: Display the data table for the chart
-                with st.expander("View Chart Data"):
-                    st.dataframe(x_distribution)
-
-
-# --- How to Run ---
-st.sidebar.info(
-    """
-    **How to Run:**
-    1. Ensure you have an active Python environment with dependencies installed (`pip install -r requirements.txt`).
-    2. Make sure your `.env` file has `SUPABASE_URL` and `SUPABASE_KEY`.
-    3. Run the dashboard from your terminal:
-       ```bash
-       streamlit run dashboard.py
-       ```
-    """
-)
+                st.bar_chart(x_distribution, x="X Value", y="Number of Signals")
