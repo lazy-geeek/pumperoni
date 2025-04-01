@@ -185,6 +185,11 @@ else:
             f"Loaded {len(df_loaded)} messages initially. Displaying {len(df_filtered)} after filtering."
         )
 
+        # Filter for signals (original messages, not replies) using the *filtered* dataframe
+        signals_df = df_filtered[
+            df_filtered["reply_to_message_id"] == 0
+        ].copy()  # Use .copy() to avoid SettingWithCopyWarning
+
         # --- Create Tabs ---
         tab1, tab2, tab3 = st.tabs(
             ["📊 Signal X Status", "📈 X Distribution", "🧪 Backtesting"]
@@ -193,11 +198,6 @@ else:
         # --- Tab 1: Signal X Status Analysis ---
         with tab1:
             st.header("Signal 'X' Status")
-
-            # Filter for signals (original messages, not replies) using the *filtered* dataframe
-            signals_df = df_filtered[
-                df_filtered["reply_to_message_id"] == 0
-            ].copy()  # Use .copy() to avoid SettingWithCopyWarning
 
             total_signals = len(signals_df)
 
@@ -279,7 +279,7 @@ else:
             )
 
             # Get filtered signals in chronological order
-            sorted_signals = df_filtered.sort_values("timestamp")
+            sorted_signals = signals_df.sort_values("timestamp")
 
             # Initialize balance history
             balance_history = [start_balance]
