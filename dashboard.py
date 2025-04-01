@@ -263,7 +263,13 @@ else:
             st.header("Backtesting Simulation")
             col1, col2, col3 = st.columns(3)
             start_balance = col1.number_input("Starting Amount", value=100, min_value=0)
-            trade_units = col2.number_input("Trade Units", value=1, min_value=1)
+            risk_method = col2.radio("Risk Method", ["Fixed Units", "Percentage"])
+            if risk_method == "Fixed Units":
+                risk_amount = col3.number_input("Units", value=1, min_value=1)
+            else:
+                risk_percent = col3.number_input(
+                    "Percentage", value=2.0, min_value=0.1, max_value=100.0, step=0.5
+                )
             max_x_filter = col3.number_input(
                 "Max X Filter (optional)",
                 min_value=0.0,
@@ -290,11 +296,17 @@ else:
                     else:
                         x = -1
 
+                # Calculate risk amount based on method
+                if risk_method == "Percentage":
+                    risk = current_balance * (risk_percent / 100)
+                else:
+                    risk = risk_amount
+
                 # Calculate balance change
                 if x == -1:
-                    current_balance -= trade_units
+                    current_balance -= risk
                 else:
-                    current_balance += trade_units * x
+                    current_balance += risk * x
 
                 # Store balance history
                 balance_history.append(current_balance)
@@ -330,18 +342,24 @@ else:
                             x = -1
                             trade_type = "Loss (Below Max X)"
 
+                    # Calculate risk amount based on method
+                    if risk_method == "Percentage":
+                        risk = current_balance * (risk_percent / 100)
+                    else:
+                        risk = risk_amount
+
                     # Calculate balance change
                     if x == -1:
-                        new_balance = current_balance - trade_units
+                        new_balance = current_balance - risk
                     else:
-                        new_balance = current_balance + trade_units * x
+                        new_balance = current_balance + risk * x
 
                     trade_data.append(
                         {
                             "Date": signal["timestamp"],
                             "Type": trade_type,
                             "X Value": x,
-                            "Trade Amount": trade_units * x if x > 0 else -trade_units,
+                            "Trade Amount": risk * x if x > 0 else -risk,
                             "Previous Balance": current_balance,
                             "New Balance": new_balance,
                         }
