@@ -90,15 +90,100 @@ else:
         "End Date", value=None, help="Leave blank to include all data up to today."
     )
 
-    # --- Load Data Based on Filters ---
-    df = load_data(start_date=start_date_input, end_date=end_date_input)
+    st.sidebar.divider()  # Add a visual separator
 
-    if df.empty:
+    # --- Additional Filters ---
+    mc_filter_k = st.sidebar.number_input(
+        "Marketcap (in thousands)",
+        min_value=0,
+        value=None,
+        step=10,
+        help="Filter by minimum marketcap (e.g., 100 = $100,000). Leave blank for no filter.",
+    )
+    vol_filter_k = st.sidebar.number_input(
+        "Volume (in thousands)",
+        min_value=0,
+        value=None,
+        step=10,
+        help="Filter by minimum volume (e.g., 100 = $100,000). Leave blank for no filter.",
+    )
+    top_10_holder_filter = st.sidebar.number_input(
+        "Top 10 Holder (%)",
+        min_value=0.0,
+        max_value=100.0,
+        value=None,
+        step=1.0,
+        help="Filter by minimum Top 10 Holder percentage. Leave blank for no filter.",
+    )
+    x_filter = st.sidebar.number_input(
+        "X Value",
+        value=None,
+        step=1.0,
+        help="Filter by exact X value. Leave blank for no filter.",
+    )
+    dex_paid_filter = st.sidebar.checkbox("Dex Paid", value=False)
+
+    # --- Load Data Based on Filters ---
+    df_loaded = load_data(start_date=start_date_input, end_date=end_date_input)
+
+    # --- Apply Additional Filters ---
+    df_filtered = df_loaded.copy()  # Start with the date-filtered data
+
+    if mc_filter_k is not None:
+        mc_filter = mc_filter_k * 1000  # Convert thousands to actual value
+        # Ensure 'mc' column exists and is numeric before filtering
+        if "mc" in df_filtered.columns:
+            df_filtered["mc"] = pd.to_numeric(df_filtered["mc"], errors="coerce")
+            df_filtered = df_filtered[df_filtered["mc"] >= mc_filter]
+        else:
+            st.sidebar.warning("Marketcap (mc) column not found in data.")
+
+    if vol_filter_k is not None:
+        vol_filter = vol_filter_k * 1000  # Convert thousands to actual value
+        # Ensure 'vol' column exists and is numeric before filtering
+        if "vol" in df_filtered.columns:
+            df_filtered["vol"] = pd.to_numeric(df_filtered["vol"], errors="coerce")
+            df_filtered = df_filtered[df_filtered["vol"] >= vol_filter]
+        else:
+            st.sidebar.warning("Volume (vol) column not found in data.")
+
+    if top_10_holder_filter is not None:
+        # Ensure 'top_10_holder' column exists and is numeric before filtering
+        if "top_10_holder" in df_filtered.columns:
+            df_filtered["top_10_holder"] = pd.to_numeric(
+                df_filtered["top_10_holder"], errors="coerce"
+            )
+            # Filter where the data's top_10_holder is >= the filter value
+            df_filtered = df_filtered[
+                df_filtered["top_10_holder"] >= top_10_holder_filter
+            ]
+        else:
+            st.sidebar.warning(
+                "Top 10 Holder (top_10_holder) column not found in data."
+            )
+
+    if x_filter is not None:
+        # 'x' is already converted to numeric in load_data
+        df_filtered = df_filtered[df_filtered["x"] == x_filter]
+
+    if dex_paid_filter:
+        # Ensure 'dex_paid' column exists and treat it as boolean
+        if "dex_paid" in df_filtered.columns:
+            # Convert potential different types to boolean (e.g., 0/1, True/False strings)
+            df_filtered["dex_paid"] = df_filtered["dex_paid"].astype(bool)
+            df_filtered = df_filtered[df_filtered["dex_paid"] == True]
+        else:
+            st.sidebar.warning("Dec Paid (dex_paid) column not found in data.")
+
+    # --- Display Data ---
+    if df_filtered.empty:
         st.warning(
             "No message data found for the selected period or an error occurred."
         )
     else:
-        st.success(f"Loaded {len(df)} messages.")
+        st.success(
+            f"Loaded {len(df_loaded)} messages initially. Displaying {len(df_filtered)} after filtering."
+        )
 
         # --- Create Tabs ---
         tab1, tab2 = st.tabs(["📊 Signal X Status", "📈 X Distribution"])
@@ -107,9 +192,9 @@ else:
         with tab1:
             st.header("Signal 'X' Status")
 
-            # Filter for signals (original messages, not replies)
-            signals_df = df[
-                df["reply_to_message_id"] == 0
+            # Filter for signals (original messages, not replies) using the *filtered* dataframe
+            signals_df = df_filtered[
+                df_filtered["reply_to_message_id"] == 0
             ].copy()  # Use .copy() to avoid SettingWithCopyWarning
 
             total_signals = len(signals_df)
