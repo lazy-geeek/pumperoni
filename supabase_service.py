@@ -164,7 +164,7 @@ class SupabaseService:
         while True:
             try:
                 query = self.client.table("messages").select(
-                    "timestamp, reply_to_message_id, x",
+                    "timestamp, reply_to_message_id, x, mc, vol, top10_holder, dex_paid",  # Added dex_paid
                     count="exact",  # Request count for pagination logic
                 )
                 if start_date:

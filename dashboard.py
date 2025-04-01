@@ -62,6 +62,13 @@ def load_data(start_date=None, end_date=None):
             .astype(int)
         )
 
+        # Ensure 'dex_paid' column exists, default to False if not
+        if "dex_paid" not in df.columns:
+            df["dex_paid"] = False
+        else:
+            # Ensure boolean type if it exists
+            df["dex_paid"] = df["dex_paid"].astype(bool)
+
         return df
     except Exception as e:
         st.error(f"Error loading data from Supabase: {e}")
@@ -94,21 +101,21 @@ else:
 
     # --- Additional Filters ---
     mc_filter_k = st.sidebar.number_input(
-        "Marketcap (in thousands)",
+        "Min Marketcap (in thousands)",
         min_value=0,
         value=None,
         step=10,
         help="Filter by minimum marketcap (e.g., 100 = $100,000). Leave blank for no filter.",
     )
     vol_filter_k = st.sidebar.number_input(
-        "Volume (in thousands)",
+        "Min Volume (in thousands)",
         min_value=0,
         value=None,
         step=10,
         help="Filter by minimum volume (e.g., 100 = $100,000). Leave blank for no filter.",
     )
     top_10_holder_filter = st.sidebar.number_input(
-        "Top 10 Holder (%)",
+        "Min Top 10 Holder (%)",
         min_value=0.0,
         max_value=100.0,
         value=None,
@@ -116,12 +123,17 @@ else:
         help="Filter by minimum Top 10 Holder percentage. Leave blank for no filter.",
     )
     x_filter = st.sidebar.number_input(
-        "X Value",
+        "Max X Value",
         value=None,
         step=1.0,
-        help="Filter by exact X value. Leave blank for no filter.",
+        help="Filter by maximum X value. Leave blank for no filter.",
     )
-    dex_paid_filter = st.sidebar.checkbox("Dex Paid", value=False)
+    dex_paid_filter_option = st.sidebar.selectbox(
+        "Dex Paid",
+        options=["Any", "Yes", "No"],
+        index=0,  # Default to "Any"
+        help="Filter by whether Dex has been paid.",
+    )
 
     # --- Load Data Based on Filters ---
     df_loaded = load_data(start_date=start_date_input, end_date=end_date_input)
@@ -148,32 +160,31 @@ else:
             st.sidebar.warning("Volume (vol) column not found in data.")
 
     if top_10_holder_filter is not None:
-        # Ensure 'top_10_holder' column exists and is numeric before filtering
-        if "top_10_holder" in df_filtered.columns:
-            df_filtered["top_10_holder"] = pd.to_numeric(
-                df_filtered["top_10_holder"], errors="coerce"
+        # Ensure 'top10_holder' column exists and is numeric before filtering
+        if "top10_holder" in df_filtered.columns:
+            df_filtered["top10_holder"] = pd.to_numeric(
+                df_filtered["top10_holder"], errors="coerce"
             )
-            # Filter where the data's top_10_holder is >= the filter value
+            # Filter where the data's top10_holder is >= the filter value
             df_filtered = df_filtered[
-                df_filtered["top_10_holder"] >= top_10_holder_filter
+                df_filtered["top10_holder"] >= top_10_holder_filter
             ]
         else:
-            st.sidebar.warning(
-                "Top 10 Holder (top_10_holder) column not found in data."
-            )
+            st.sidebar.warning("Top 10 Holder (top10_holder) column not found in data.")
 
     if x_filter is not None:
         # 'x' is already converted to numeric in load_data
-        df_filtered = df_filtered[df_filtered["x"] == x_filter]
+        # Filter where the data's x is <= the filter value
+        df_filtered = df_filtered[df_filtered["x"] <= x_filter]
 
-    if dex_paid_filter:
-        # Ensure 'dex_paid' column exists and treat it as boolean
-        if "dex_paid" in df_filtered.columns:
-            # Convert potential different types to boolean (e.g., 0/1, True/False strings)
-            df_filtered["dex_paid"] = df_filtered["dex_paid"].astype(bool)
-            df_filtered = df_filtered[df_filtered["dex_paid"] == True]
-        else:
-            st.sidebar.warning("Dec Paid (dex_paid) column not found in data.")
+    # Apply Dex Paid filter based on selectbox option
+    if dex_paid_filter_option == "Yes":
+        # Column 'dex_paid' is guaranteed to exist and be boolean by load_data
+        df_filtered = df_filtered[df_filtered["dex_paid"] == True]
+    elif dex_paid_filter_option == "No":
+        # Column 'dex_paid' is guaranteed to exist and be boolean by load_data
+        df_filtered = df_filtered[df_filtered["dex_paid"] == False]
+    # If "Any", no filter is applied
 
     # --- Display Data ---
     if df_filtered.empty:
