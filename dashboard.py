@@ -122,12 +122,6 @@ else:
         step=1.0,
         help="Filter by minimum Top 10 Holder percentage. Leave blank for no filter.",
     )
-    x_filter = st.sidebar.number_input(
-        "Max X Value",
-        value=None,
-        step=1.0,
-        help="Filter by maximum X value. Leave blank for no filter.",
-    )
     dex_paid_filter_option = st.sidebar.selectbox(
         "Dex Paid",
         options=["Any", "Yes", "No"],
@@ -172,11 +166,6 @@ else:
         else:
             st.sidebar.warning("Top 10 Holder (top10_holder) column not found in data.")
 
-    if x_filter is not None:
-        # 'x' is already converted to numeric in load_data
-        # Filter where the data's x is <= the filter value
-        df_filtered = df_filtered[df_filtered["x"] <= x_filter]
-
     # Apply Dex Paid filter based on selectbox option
     if dex_paid_filter_option == "Yes":
         # Column 'dex_paid' is guaranteed to exist and be boolean by load_data
@@ -197,7 +186,9 @@ else:
         )
 
         # --- Create Tabs ---
-        tab1, tab2 = st.tabs(["📊 Signal X Status", "📈 X Distribution"])
+        tab1, tab2, tab3 = st.tabs(
+            ["📊 Signal X Status", "📈 X Distribution", "🧪 Backtesting"]
+        )
 
         # --- Tab 1: Signal X Status Analysis ---
         with tab1:
@@ -266,3 +257,53 @@ else:
 
                 # Display the bar chart
                 st.bar_chart(x_distribution, x="X Value", y="Number of Signals")
+
+        # --- Tab 3: Backtesting Simulation ---
+        with tab3:
+            st.header("Backtesting Simulation")
+            col1, col2, col3 = st.columns(3)
+            start_balance = col1.number_input("Starting Amount", value=100, min_value=0)
+            trade_units = col2.number_input("Trade Units", value=1, min_value=1)
+            max_x_filter = col3.number_input(
+                "Max X Filter (optional)", min_value=0, value=None
+            )
+
+            # Get filtered signals in chronological order
+            sorted_signals = df_filtered.sort_values("timestamp")
+
+            # Initialize balance history
+            balance_history = [start_balance]
+            current_balance = start_balance
+
+            # Process each signal
+            for _, signal in sorted_signals.iterrows():
+                x = signal["x"] if pd.notnull(signal["x"]) else -1
+
+                # Apply max X rules
+                if max_x_filter is not None and x != -1:
+                    if x >= max_x_filter:
+                        x = max_x_filter
+                    else:
+                        x = -1
+
+                # Calculate balance change
+                if x == -1:
+                    current_balance -= trade_units
+                else:
+                    current_balance += trade_units * x
+
+                # Store balance history
+                balance_history.append(current_balance)
+
+            # Create DataFrame for charting
+            balance_df = pd.DataFrame(
+                {
+                    "Date": pd.concat(
+                        [sorted_signals["timestamp"], pd.Series([pd.Timestamp.now()])]
+                    ),
+                    "Balance": balance_history,
+                }
+            )
+
+            # Display time-series chart
+            st.line_chart(balance_df.set_index("Date"))
