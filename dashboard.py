@@ -265,7 +265,11 @@ else:
             start_balance = col1.number_input("Starting Amount", value=100, min_value=0)
             trade_units = col2.number_input("Trade Units", value=1, min_value=1)
             max_x_filter = col3.number_input(
-                "Max X Filter (optional)", min_value=0, value=None
+                "Max X Filter (optional)",
+                min_value=0.0,
+                value=None,
+                step=0.1,
+                format="%.1f",
             )
 
             # Get filtered signals in chronological order
@@ -307,3 +311,54 @@ else:
 
             # Display time-series chart
             st.line_chart(balance_df.set_index("Date"))
+
+            # Add expandable trade history
+            with st.expander("Trade History"):
+                trade_data = []
+                current_balance = start_balance
+
+                for _, signal in sorted_signals.iterrows():
+                    x = signal["x"] if pd.notnull(signal["x"]) else -1
+                    trade_type = "Win" if x > 0 else "Loss"
+
+                    # Apply max X rules
+                    if max_x_filter is not None and x != -1:
+                        if x >= max_x_filter:
+                            x = max_x_filter
+                            trade_type = "Win (Max X Applied)"
+                        else:
+                            x = -1
+                            trade_type = "Loss (Below Max X)"
+
+                    # Calculate balance change
+                    if x == -1:
+                        new_balance = current_balance - trade_units
+                    else:
+                        new_balance = current_balance + trade_units * x
+
+                    trade_data.append(
+                        {
+                            "Date": signal["timestamp"],
+                            "Type": trade_type,
+                            "X Value": x,
+                            "Trade Amount": trade_units * x if x > 0 else -trade_units,
+                            "Previous Balance": current_balance,
+                            "New Balance": new_balance,
+                        }
+                    )
+                    current_balance = new_balance
+
+                # Create and display trade history table
+                trade_df = pd.DataFrame(trade_data)
+                st.dataframe(
+                    trade_df,
+                    column_config={
+                        "Date": "Date",
+                        "Type": "Trade Type",
+                        "X Value": "X Value",
+                        "Trade Amount": "Amount",
+                        "Previous Balance": "Previous Balance",
+                        "New Balance": "New Balance",
+                    },
+                    use_container_width=True,
+                )
