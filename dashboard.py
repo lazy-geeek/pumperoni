@@ -115,12 +115,12 @@ else:
         help="Filter by minimum volume (e.g., 100 = $100,000). Leave blank for no filter.",
     )
     top_10_holder_filter = st.sidebar.number_input(
-        "Min Top 10 Holder (%)",
+        "Max Top 10 Holder (%)",
         min_value=0.0,
         max_value=100.0,
         value=None,
         step=1.0,
-        help="Filter by minimum Top 10 Holder percentage. Leave blank for no filter.",
+        help="Filter by maximum Top 10 Holder percentage. Leave blank for no filter.",
     )
     dex_paid_filter_option = st.sidebar.selectbox(
         "Dex Paid",
@@ -161,7 +161,7 @@ else:
             )
             # Filter where the data's top10_holder is >= the filter value
             df_filtered = df_filtered[
-                df_filtered["top10_holder"] >= top_10_holder_filter
+                df_filtered["top10_holder"] <= top_10_holder_filter
             ]
         else:
             st.sidebar.warning("Top 10 Holder (top10_holder) column not found in data.")
